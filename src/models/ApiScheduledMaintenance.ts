@@ -1,0 +1,43 @@
+import type { ApiDocumentInfo } from "./ApiDocumentInfo.js";
+import type { ApiItemInfo } from "./ApiItemInfo.js";
+import type { ApiEquipmentInfoDto } from "./ApiEquipmentInfoDto.js";
+import type { ApiScheduledMaintenanceTask } from "./ApiScheduledMaintenanceTask.js";
+import type { ApiWorkOrderInfo } from "./ApiWorkOrderInfo.js";
+
+export interface ApiScheduledMaintenance {
+  Id?: number;
+  ServiceCategoryId?: number;
+  ServiceCategory?: string;
+  LocationId?: number;
+  LocationName?: string;
+  Notes?: string;
+  StartDate?: string;
+  EndDate?: string;
+  Description?: string;
+  AssignedId?: number;
+  VendorAssignedName?: string;
+  VendorAssignedId?: number;
+  VendorContactId?: number;
+  AssignedDepartmentId?: number;
+  AssignedTo?: string;
+  FrequencyDays?: number;
+  Frequency?: string;
+  CustomDates?: string;
+  WOLeadTime?: number;
+  RemindAllAdmins?: boolean;
+  RemindAssigned?: boolean;
+  RemindUser?: boolean;
+  ReminderDaysLeadTime?: number;
+  ReminderNote?: string;
+  RequiresApprovalAfterCompletion?: boolean;
+  HasAttachments?: boolean;
+  Attachments?: ApiDocumentInfo[];
+  HasSpaces?: boolean;
+  Spaces?: ApiItemInfo[];
+  HasEquipment?: boolean;
+  Equipment?: ApiEquipmentInfoDto[];
+  HasTasks?: boolean;
+  Tasks?: ApiScheduledMaintenanceTask[];
+  HasWorkOrders?: boolean;
+  WorkOrders?: ApiWorkOrderInfo[];
+}
