@@ -55,7 +55,7 @@ There's no shared server, no multi-tenant auth. One key = one person.
 3. Find the API access / tokens section and generate a new personal API key.
 4. Copy the UUID-format string. **Store it like a password** — anyone with this key can make changes as you.
 
-If you can't find where to generate a key, check with whoever administers your eSpace account (or with Fr. Norman).
+If you can't find where to generate a key, check with whoever administers your eSpace account.
 
 ---
 
@@ -202,13 +202,8 @@ See [`CLAUDE.md`](CLAUDE.md) — it has project-specific instructions for a Clau
 
 ---
 
-## Related Documents in the CPP Knowledge Base
-
-- [`CPP RunBook/2-Areas/Technology/M365 MCP Guide`](../../Obsidian/CPP%20RunBook/2-Areas/Technology/) — similar pattern for the Microsoft 365 MCP server
-- [`Oscar/3-Resources/reference/oscar-system-documentation/vault deployment checklist`](../../Obsidian/Oscar/3-Resources/reference/oscar-system-documentation/) — includes eSpace setup in the Layer 2 deployment flow
-
----
-
 ## License
 
-Private — internal use at Catholic Parishes in Partnership. Not licensed for redistribution.
+Private — all rights reserved. See [`LICENSE`](LICENSE).
+
+This repository is published publicly so authorized CPP staff can clone and install it without needing a GitHub account, but the code itself is not open-source. No license is granted to copy, modify, or redistribute.
