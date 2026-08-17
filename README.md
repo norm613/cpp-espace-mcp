@@ -6,7 +6,9 @@ MCP server that gives Claude Code access to the [eSpace](https://espace.cool) fa
 
 ## Quick Start
 
-If you just want to get this running on your machine:
+If you just want to get this running on your machine. **Pick the section for your platform** — the two differ in more than path syntax.
+
+### Windows (PowerShell)
 
 ```powershell
 # 1. Install Node.js LTS if you don't have it
@@ -31,7 +33,63 @@ claude mcp list
 # 'espace' should show: ✓ Connected
 ```
 
+### macOS / Linux
+
+```bash
+# 1. Install Node.js LTS if you don't have it
+brew install node          # macOS; on Linux use your package manager or nodesource
+
+# 2. Clone and build
+mkdir -p ~/code && cd ~/code
+git clone https://github.com/norm613/cpp-espace-mcp.git
+cd cpp-espace-mcp
+npm install
+npm run build
+
+# 3. Get your personal API key from your eSpace profile (see section below)
+
+# 4. Register with Claude Code (user scope — available in every project)
+claude mcp add espace --scope user --env ESPACE_API_KEY=YOUR_KEY_HERE -- node ~/code/cpp-espace-mcp/dist/index.js
+
+# 5. Verify
+claude mcp list
+# 'espace' should show: ✓ Connected
+```
+
+**Three things differ from the Windows command, and they matter:**
+
+1. **No `cmd /c`.** That wrapper is a Windows shell shim. Including it on macOS or Linux fails with `spawn cmd ENOENT`.
+2. **Run the compiled `dist/index.js` with `node`, not `npx tsx src/index.ts`.** Step 2 already built `dist/`, `tsx` is frequently not installed, and running compiled output skips a transpile on every server launch. The `tsx` form still works if you prefer it — `npx tsx ~/code/cpp-espace-mcp/src/index.ts` — but it's slower and adds a dependency you don't need.
+3. **No `MSYS_NO_PATHCONV` concerns.** That workaround exists only for Git Bash on Windows mangling `/c`. Ignore it here.
+
 Then relaunch Claude Code. Ask it something like "check eSpace for any open work orders at PJCC" to confirm it works.
+
+### If you don't have the `claude` CLI (Claude Code desktop app)
+
+The desktop app ships without the CLI, so `claude mcp add` won't exist. Add the entry to `~/.claude.json` by hand instead, under the top-level `mcpServers` key. **Back the file up first** — it holds all your other server configs and session state:
+
+```bash
+cp ~/.claude.json ~/.claude.json.bak
+```
+
+```json
+"espace": {
+  "type": "stdio",
+  "command": "/opt/homebrew/bin/node",
+  "args": ["/Users/YOUR_USERNAME/code/cpp-espace-mcp/dist/index.js"],
+  "env": { "ESPACE_API_KEY": "YOUR_KEY_HERE" }
+}
+```
+
+Use the **absolute path to node** — `/opt/homebrew/bin/node` on Apple Silicon, `/usr/local/bin/node` on Intel Macs or Homebrew-on-Linux. Find yours with `which node`. A bare `"node"` can fail because the desktop app's `PATH` is not your shell's `PATH`.
+
+`args` must also be an absolute path; `~` is not expanded here.
+
+Validate before relaunching — a malformed file stops Claude Code from starting:
+
+```bash
+python3 -c "import json; json.load(open('$HOME/.claude.json')); print('valid')"
+```
 
 ---
 
@@ -63,10 +121,10 @@ If you can't find where to generate a key, check with whoever administers your e
 
 Before running the install steps, make sure you have:
 
-- [ ] **Windows 10/11 with PowerShell**
-- [ ] **Node.js LTS** — `node --version` should return a number. If not: `winget install OpenJS.NodeJS.LTS`, then close/reopen PowerShell so `PATH` updates.
-- [ ] **Git** — `git --version` should work. If not: `winget install Git.Git`.
-- [ ] **Claude Code CLI** — `claude --version` should work. Already installed if you've used Claude Code before.
+- [ ] **A supported OS** — Windows 10/11 with PowerShell, **or** macOS, **or** Linux. Nothing in this server is Windows-specific; only the registration command differs.
+- [ ] **Node.js LTS** — `node --version` should return a number. If not: `winget install OpenJS.NodeJS.LTS` (Windows, then close/reopen PowerShell so `PATH` updates) or `brew install node` (macOS).
+- [ ] **Git** — `git --version` should work. If not: `winget install Git.Git` (Windows); macOS installs it with the Xcode command line tools (`xcode-select --install`).
+- [ ] **Claude Code** — either the CLI (`claude --version` works) or the desktop app. **The desktop app has no CLI**, so use the hand-edited `~/.claude.json` route in the Quick Start rather than `claude mcp add`.
 - [ ] **An eSpace API key** (see above)
 
 ---
@@ -78,15 +136,40 @@ The command in the Quick Start registers the MCP server at **user scope**, meani
 If you need to update the key later (rotation, regenerated key, etc.):
 
 ```powershell
+# Windows
 claude mcp remove espace --scope user
 claude mcp add espace --scope user --env ESPACE_API_KEY=NEW_KEY -- cmd /c npx tsx "$env:USERPROFILE\code\cpp-espace-mcp\src\index.ts"
 ```
+
+```bash
+# macOS / Linux
+claude mcp remove espace --scope user
+claude mcp add espace --scope user --env ESPACE_API_KEY=NEW_KEY -- node ~/code/cpp-espace-mcp/dist/index.js
+```
+
+On the desktop app (no CLI), edit the `ESPACE_API_KEY` value in `~/.claude.json` directly and relaunch.
 
 To see current status:
 
 ```powershell
 claude mcp get espace
 ```
+
+### Verifying without the CLI
+
+`claude mcp list` doesn't exist on the desktop app, and relaunching just to find out whether a key works is slow. You can talk to the server directly — pipe two JSON-RPC frames into it over stdio:
+
+```bash
+cd ~/code/cpp-espace-mcp
+printf '%s\n' \
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"probe","version":"1"}}}' \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get-locations","arguments":{}}}' \
+  | ESPACE_API_KEY="YOUR_KEY_HERE" node dist/index.js
+```
+
+A working setup returns the server handshake, then a `get-locations` payload listing your org's locations.
+
+⚠️ **The handshake alone proves nothing about your key.** `initialize` succeeds with a completely invalid key — the server doesn't contact eSpace until the first real tool call. Always verify with an actual call like `get-locations`, not just a successful startup. This is the single most common way a broken eSpace registration looks healthy.
 
 ---
 
@@ -129,17 +212,29 @@ Full tool registration list is in [`src/index.ts`](src/index.ts).
 The `mcp list` output doesn't include the real error. To see it, run the stdio command by hand:
 
 ```powershell
+# Windows
 $env:ESPACE_API_KEY = "your-key"
 cmd /c npx tsx "$env:USERPROFILE\code\cpp-espace-mcp\src\index.ts"
 ```
 
+```bash
+# macOS / Linux
+ESPACE_API_KEY="your-key" node ~/code/cpp-espace-mcp/dist/index.js
+```
+
 Common causes:
-- **Node.js not installed** — `node --version` returns nothing → `winget install OpenJS.NodeJS.LTS`
+- **Node.js not installed** — `node --version` returns nothing → `winget install OpenJS.NodeJS.LTS` (Windows) / `brew install node` (macOS)
 - **Node installed but PATH not refreshed** — close and reopen PowerShell
 - **Firewall blocking npm** — `npm install` hung or failed during setup → talk to IT
 - **Wrong API key** — you'll see a 401 from eSpace; generate a new key and re-register
 - **Repo not built** — `npm run build` was skipped; run it
 - **File path has spaces or quotes** — the path in the `claude mcp add` command should be wrapped in double quotes
+
+**macOS / Linux specific:**
+- **`spawn cmd ENOENT`** — you copied the Windows command with its `cmd /c` wrapper. Drop it; that shim is Windows-only.
+- **Works in your terminal but fails from the app** — you registered a bare `"node"`. The desktop app's `PATH` is not your shell's. Use the absolute path from `which node`.
+- **`~` in the config didn't resolve** — `~/.claude.json` does not expand tildes inside `args`. Write the full `/Users/you/...` path.
+- **Starts fine but every call 401s** — the key is wrong, not the install. `initialize` never contacts eSpace, so a bad key looks like a healthy server until the first real call.
 
 ### "Add to user config" succeeded but path looks wrong (`C:/` instead of `/c`)
 
