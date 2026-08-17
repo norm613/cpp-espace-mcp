@@ -115,6 +115,14 @@ There's no shared server, no multi-tenant auth. One key = one person.
 
 If you can't find where to generate a key, check with whoever administers your eSpace account.
 
+### How the key is actually used
+
+Your API key is **not** sent on each request. eSpace API v2 is JWT-based, so this server POSTs your key to `/api/v2/requesttoken`, receives a short-lived JWT, and refreshes it automatically five minutes before it expires. You never handle the JWT — supplying `ESPACE_API_KEY` is the whole job.
+
+**Your key expires.** Per eSpace, a key is valid for roughly **a year**, and is invalidated immediately if the authenticating user **changes their email address or password**. When that happens the token request starts returning 401 and every tool call fails, with no change on your end to explain it. Generate a new key and update `ESPACE_API_KEY`.
+
+> API v1 was decommissioned 2025-05-01. This server targets v2 only.
+
 ---
 
 ## Prerequisites Checklist
@@ -191,11 +199,11 @@ If Claude ever performs a write without asking first, that's a bug — report it
 
 ---
 
-## Available Tools (29 total)
+## Available Tools (31 total)
 
 | Category | Tools | Typical use |
 |---------|-------|-------------|
-| **Work Orders** | `get-work-order`, `list-work-orders`, `create-work-order`, `update-work-order`, `delete-work-order`, `get-work-order-tasks`, `add-work-order-task`, `update-work-order-task`, `get-work-order-costs`, `get-work-order-attachments`, `get-work-order-priorities`, `get-work-order-statuses` | "Show me all open work orders at SPE," "Create a work order for the boiler at PJCC," "What's the cost breakdown on work order 1234?" |
+| **Work Orders** | `get-work-order`, `list-work-orders`, `create-work-order`, `update-work-order`, `delete-work-order`, `get-work-order-spaces`, `get-work-order-tasks`, `add-work-order-task`, `update-work-order-task`, `get-work-order-costs`, `get-work-order-attachments`, `get-work-order-priorities`, `get-work-order-statuses` | "Show me all open work orders at SPE," "Create a work order for the boiler at PJCC," "What's the cost breakdown on work order 1234?" |
 | **Events** | `get-event`, `list-events`, `get-event-occurrences`, `get-event-spaces` | "List next week's events at STC," "What spaces are booked for Holy Thursday?" |
 | **Maintenance** | `get-maintenance`, `list-maintenance`, `get-maintenance-types`, `get-maintenance-spaces`, `get-frequency-types` | "Show me all scheduled maintenance coming due," "What PM frequency types are defined?" |
 | **Equipment** | `get-equipment`, `list-equipment`, `get-equipment-types` | "List the HVAC equipment at SJD," "What equipment types do we track?" |
@@ -248,6 +256,15 @@ claude mcp add espace --scope user --env ESPACE_API_KEY=YOUR_KEY -- cmd /c npx t
 ### The key works for others but not me
 
 Make sure the key is yours — generated under *your* eSpace profile. Keys are user-specific; another person's key won't authenticate you (and will wrongly attribute your actions).
+
+### It worked for months and suddenly every call returns 401
+
+Your API key was almost certainly invalidated. Two causes, and the second catches people out:
+
+1. **The key aged out** — eSpace keys are good for roughly a year.
+2. **You changed your eSpace email address or password.** That invalidates the key immediately, and nothing about the change hints that an integration just broke. If eSpace stopped working right after a password reset, this is why.
+
+Either way the fix is the same: generate a new key under your eSpace profile and update `ESPACE_API_KEY`. You'll see the failure at the token-request step (`eSpace token request failed: 401`), not at server startup — the server starts fine with a dead key.
 
 ### Claude says it did something but eSpace doesn't reflect the change
 
